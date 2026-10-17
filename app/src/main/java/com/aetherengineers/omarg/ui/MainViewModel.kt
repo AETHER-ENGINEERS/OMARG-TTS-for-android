@@ -18,7 +18,11 @@ import com.aetherengineers.omarg.render.RenderRequest
 import com.aetherengineers.omarg.render.Renderer
 import com.aetherengineers.omarg.tts.EngineInfo
 import com.aetherengineers.omarg.tts.Script
+import com.aetherengineers.omarg.tts.SpeechEngine
 import com.aetherengineers.omarg.tts.TtsEngine
+import com.aetherengineers.omarg.tts.neural.NeuralEngine
+import com.aetherengineers.omarg.tts.neural.PackInstaller
+import com.aetherengineers.omarg.tts.neural.VoicePack
 import com.aetherengineers.omarg.tts.VoiceInfo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -54,6 +58,9 @@ data class UiState(
     val normalize: Boolean = true,
     val sentenceGapMs: Int = 250,
     val ttsReady: Boolean = false,
+    val packs: List<InstalledPack> = emptyList(),
+    /** Non-null while a voice pack is being imported. */
+    val packProgress: String? = null,
 ) {
     val allEffects: List<EffectChain> get() = Presets.all + customEffects
     fun effectByName(name: String?): EffectChain? = name?.let { n -> customEffects.firstOrNull { it.name == n } ?: Presets.byName(n) }
@@ -61,6 +68,8 @@ data class UiState(
     fun voicesFor(slot: VoiceSlot): List<VoiceInfo> =
         voices[engineKey(slot)].orEmpty().filter { it.installed && (allowNetworkVoices || !it.requiresNetwork) }
 }
+
+data class InstalledPack(val id: String, val name: String, val kind: String, val sizeBytes: Long)
 
 sealed interface UiEvent {
     data class Message(val text: String) : UiEvent
@@ -85,38 +94,105 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val events = Channel<UiEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
 
-    private val engines = mutableMapOf<String, TtsEngine>()
+    private val engines = mutableMapOf<String, SpeechEngine>()
+    private val installer = PackInstaller(java.io.File(app.filesDir, "voices"))
+    private val neural = NeuralEngine(installer).also { engines[NeuralEngine.PACKAGE] = it }
+    private var packJob: Job? = null
     private val engineLock = Mutex()
     private var renderJob: Job? = null
     private val renderer = Renderer(app) { pkg -> engine(pkg) }
 
     init {
         viewModelScope.launch {
-            val default = engine(null)
-            if (default == null) {
-                message("No text-to-speech engine found. Install Samsung TTS, Google Speech Services or SherpaTTS.")
-            } else {
-                _state.update { it.copy(engines = default.engines, defaultEngine = default.packageName, ttsReady = true) }
-                loadVoices(default)
-                _state.value.slots.mapNotNull { it.engine }.distinct().forEach { pkg -> engine(pkg)?.let { loadVoices(it) } }
-                // First run: preselect the engine's default voice.
-                val first = _state.value.slots[0]
-                if (first.voice == null) default.defaultVoiceName()?.let { updateSlot(0, first.copy(voice = it)) }
+            refreshPacks()
+            val default = engine(null) as? TtsEngine
+            val systemEngines = default?.engines.orEmpty()
+            _state.update {
+                it.copy(
+                    engines = systemEngines + NeuralEngine.INFO,
+                    defaultEngine = default?.packageName ?: NeuralEngine.PACKAGE,
+                    ttsReady = true,
+                )
             }
+            if (default == null) message("No system voice engine found — using the built-in neural voices.")
+            default?.let { loadVoices(it) }
+            loadVoices(neural)
+            _state.value.slots.mapNotNull { it.engine }.distinct().forEach { pkg -> engine(pkg)?.let { loadVoices(it) } }
+            // First run: preselect the engine's default voice.
+            val first = _state.value.slots[0]
+            if (first.voice == null) engine(first.engine)?.defaultVoiceName()?.let { updateSlot(0, first.copy(voice = it)) }
             refreshLibrary()
         }
     }
 
-    private suspend fun engine(pkg: String?): TtsEngine? = engineLock.withLock {
+    private suspend fun engine(pkg: String?): SpeechEngine? = engineLock.withLock {
         val key = pkg ?: _state.value.defaultEngine
         key?.let { engines[it] }?.let { return@withLock it }
-        val created = TtsEngine.create(getApplication(), pkg) ?: return@withLock null
+        val created = TtsEngine.create(getApplication(), pkg.takeIf { it != NeuralEngine.PACKAGE }) ?: return@withLock null
         engines[created.packageName] = created
         created
     }
 
-    private fun loadVoices(engine: TtsEngine) {
+    private fun loadVoices(engine: SpeechEngine) {
         _state.update { it.copy(voices = it.voices + (engine.packageName to engine.voices())) }
+    }
+
+    // ------------------------------------------------------------------ neural voice packs
+
+    private suspend fun refreshPacks() {
+        val packs = withContext(Dispatchers.IO) {
+            installer.installed().map { InstalledPack(it.id, it.displayName, it.kind.label, installer.sizeOnDisk(it)) }
+        }
+        neural.invalidate()
+        _state.update { it.copy(packs = packs) }
+        loadVoices(neural)
+    }
+
+    fun openLink(url: String) {
+        events.trySend(UiEvent.Launch(Intent(Intent.ACTION_VIEW, Uri.parse(url))))
+    }
+
+    fun importPack(uri: Uri) {
+        if (packJob?.isActive == true) return
+        packJob = viewModelScope.launch {
+            val resolver = getApplication<Application>().contentResolver
+            val total = runCatching {
+                resolver.query(uri, arrayOf(android.provider.OpenableColumns.SIZE), null, null, null)?.use { c ->
+                    if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else null
+                }
+            }.getOrNull() ?: -1L
+            _state.update { it.copy(packProgress = "Unpacking voice pack…") }
+            try {
+                val job = coroutineContext[Job]
+                val pack: VoicePack = withContext(Dispatchers.IO) {
+                    resolver.openInputStream(uri)!!.use { input ->
+                        installer.install(input, onProgress = { read ->
+                            val label = if (total > 0) "Unpacking voice pack… ${(read * 100 / total).coerceAtMost(100)}%"
+                            else "Unpacking voice pack… ${read / (1024 * 1024)} MB"
+                            _state.update { it.copy(packProgress = label) }
+                        }, isCancelled = { job?.isActive == false })
+                    }
+                }
+                refreshPacks()
+                message("Installed ${pack.displayName}. Pick “${NeuralEngine.INFO.label}” as the engine in Studio.")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                message("Could not install that file: ${e.message}")
+            } finally {
+                _state.update { it.copy(packProgress = null) }
+            }
+        }
+    }
+
+    fun cancelPackImport() { packJob?.cancel() }
+
+    fun deletePack(id: String) {
+        viewModelScope.launch {
+            neural.release()
+            withContext(Dispatchers.IO) { installer.installed().firstOrNull { it.id == id }?.let(installer::delete) }
+            refreshPacks()
+        }
     }
 
     private fun message(text: String) { events.trySend(UiEvent.Message(text)) }
@@ -220,6 +296,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     sentenceGapMs = s.sentenceGapMs,
                 )
                 val audio = renderer.render(request) { label, p -> _state.update { it.copy(progressLabel = label, progress = p) } }
+                // Loading a neural model reveals its real speaker count; refresh the voice list.
+                if (cast.any { s.engineKey(it) == NeuralEngine.PACKAGE }) loadVoices(neural)
                 if (previewChain != null) {
                     val file = withContext(Dispatchers.IO) {
                         java.io.File(getApplication<Application>().cacheDir, "preview.wav").also { com.aetherengineers.omarg.audio.Wav.write(audio, it) }

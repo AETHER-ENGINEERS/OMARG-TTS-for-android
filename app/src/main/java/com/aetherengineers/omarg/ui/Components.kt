@@ -138,7 +138,7 @@ fun VoicePickerDialog(voices: List<VoiceInfo>, selected: String?, onDismiss: () 
                             headlineContent = { Text(v.languageLabel) },
                             supportingContent = {
                                 Text(buildString {
-                                    append(prettyVoiceName(v.name)); append(" · "); append(v.qualityLabel)
+                                    append(v.label ?: prettyVoiceName(v.name)); append(" · "); append(v.qualityLabel)
                                     if (v.requiresNetwork) append(" · online")
                                 }, maxLines = 2)
                             },

@@ -5,8 +5,12 @@ import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
+import com.aetherengineers.omarg.audio.AudioBuffer
+import com.aetherengineers.omarg.audio.Wav
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.File
 import java.util.Locale
@@ -22,6 +26,8 @@ data class VoiceInfo(
     val quality: Int,
     val requiresNetwork: Boolean,
     val installed: Boolean,
+    /** Human-friendly name; when null the UI derives one from [name]. */
+    val label: String? = null,
 ) {
     val languageLabel: String get() = locale.getDisplayName(Locale.getDefault())
     val qualityLabel: String
@@ -33,8 +39,20 @@ data class VoiceInfo(
         }
 }
 
+/** A source of speech: an installed Android TTS engine or the built-in neural engine. */
+interface SpeechEngine {
+    val packageName: String
+    fun voices(): List<VoiceInfo>
+    fun defaultVoiceName(): String?
+
+    /** Speaks [text] with [voiceName] (engine default if null). [workFile] is scratch space the engine may use. */
+    suspend fun synthesize(text: String, voiceName: String?, rate: Float, pitch: Float, workFile: File): AudioBuffer
+    fun stop()
+    fun shutdown()
+}
+
 /** Coroutine wrapper around one Android [TextToSpeech] engine (Samsung, Google, SherpaTTS, RHVoice, …). */
-class TtsEngine private constructor(private val tts: TextToSpeech, val packageName: String) {
+class TtsEngine private constructor(private val tts: TextToSpeech, override val packageName: String) : SpeechEngine {
 
     private val pending = ConcurrentHashMap<String, CompletableDeferred<Boolean>>()
 
@@ -53,7 +71,7 @@ class TtsEngine private constructor(private val tts: TextToSpeech, val packageNa
 
     val maxInputLength: Int get() = TextToSpeech.getMaxSpeechInputLength()
 
-    fun voices(): List<VoiceInfo> = runCatching { tts.voices }.getOrNull().orEmpty().map {
+    override fun voices(): List<VoiceInfo> = runCatching { tts.voices }.getOrNull().orEmpty().map {
         VoiceInfo(
             name = it.name,
             locale = it.locale,
@@ -63,10 +81,17 @@ class TtsEngine private constructor(private val tts: TextToSpeech, val packageNa
         )
     }.sortedWith(compareBy({ it.languageLabel }, { -it.quality }, { it.name }))
 
-    fun defaultVoiceName(): String? = runCatching { tts.defaultVoice?.name ?: tts.voice?.name }.getOrNull()
+    override fun defaultVoiceName(): String? = runCatching { tts.defaultVoice?.name ?: tts.voice?.name }.getOrNull()
+
+    override suspend fun synthesize(text: String, voiceName: String?, rate: Float, pitch: Float, workFile: File): AudioBuffer {
+        if (!synthesizeToFile(text, voiceName, rate, pitch, workFile)) {
+            error("The voice engine failed on: \"${text.take(40)}…\". Try another voice or engine.")
+        }
+        return withContext(Dispatchers.Default) { Wav.read(workFile) }.also { workFile.delete() }
+    }
 
     /** Synthesizes [text] to a WAV [file]. Returns false if the engine reported an error. */
-    suspend fun synthesize(text: String, voiceName: String?, rate: Float, pitch: Float, file: File): Boolean {
+    private suspend fun synthesizeToFile(text: String, voiceName: String?, rate: Float, pitch: Float, file: File): Boolean {
         voiceName?.let { name -> tts.voices?.firstOrNull { it.name == name }?.let { tts.voice = it } }
         tts.setSpeechRate(rate)
         tts.setPitch(pitch)
@@ -82,9 +107,9 @@ class TtsEngine private constructor(private val tts: TextToSpeech, val packageNa
         return withTimeout(180_000L + text.length * 200L) { done.await() } && file.length() > 44
     }
 
-    fun stop() { tts.stop() }
+    override fun stop() { tts.stop() }
 
-    fun shutdown() {
+    override fun shutdown() {
         pending.values.forEach { it.complete(false) }
         pending.clear()
         tts.shutdown()

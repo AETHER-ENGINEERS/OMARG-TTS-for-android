@@ -31,6 +31,9 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/omarg.jks"
           echo "OMARG_KEYSTORE_FILE=$RUNNER_TEMP/omarg.jks" >> "$GITHUB_ENV"
 
+      - name: Fetch sherpa-onnx runtime
+        run: ./gradlew --no-daemon :app:downloadSherpa
+
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest
 

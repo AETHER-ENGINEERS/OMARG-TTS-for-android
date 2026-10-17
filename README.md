@@ -6,8 +6,11 @@ accounts, no analytics — the app doesn't even have the internet permission. Bu
 
 ## Features
 
-- **Any TTS engine on the phone**: Samsung TTS, Google Speech Services, or free offline neural engines such as
-  SherpaTTS (Piper/Kokoro voices) and RHVoice. Searchable voice picker, per-voice speed and pitch.
+- **Built-in neural voice engine** (sherpa-onnx): Kokoro (53 voices, 9 languages), Supertonic 3 (31 languages),
+  Kitten and 150+ Piper voices, all running offline on the phone. Add voices in the **Voices** tab: tap Download
+  (your browser fetches the pack), then Import. Any sherpa-onnx TTS `.tar.bz2` works.
+- **Also uses every TTS engine on the phone**: Samsung TTS, Google Speech Services, RHVoice, eSpeak NG…
+  Searchable voice picker, per-voice speed and pitch.
 - **42 built-in effects**, all free and editable. Categories: narration (movie trailer, documentary, radio host,
   storyteller, deep voice, stadium announcer), characters, sci-fi (robot, cyborg, alien, 8-bit…), horror (monster,
   demon, ghost, possessed…), places (cave, cathedral, underwater…), devices (telephone, walkie-talkie,
@@ -48,7 +51,7 @@ Android Studio (Ladybug or newer) or `./gradlew assembleDebug` with JDK 17 and t
 
 ## How it works
 
-Text → Android `TextToSpeech.synthesizeToFile` (per chunk / per voice) → silence trimming → per-voice effects →
+Text → Android `TextToSpeech.synthesizeToFile` or the built-in sherpa-onnx engine (per chunk / per voice) → silence trimming → per-voice effects →
 master effect chain → normalisation → background-music mix with ducking → soft limiter. All DSP is plain Kotlin
 in `app/src/main/java/com/aetherengineers/omarg/audio/dsp` (WSOLA time-stretch and pitch-shift, Freeverb reverb,
 RBJ biquad filters, modulated delay lines) and is unit-tested on the JVM.

@@ -5,14 +5,13 @@ import android.net.Uri
 import com.aetherengineers.omarg.audio.AudioBuffer
 import com.aetherengineers.omarg.audio.AudioDecoder
 import com.aetherengineers.omarg.audio.Mixer
-import com.aetherengineers.omarg.audio.Wav
 import com.aetherengineers.omarg.audio.dsp.Dsp
 import com.aetherengineers.omarg.audio.dsp.EffectChain
 import com.aetherengineers.omarg.data.MusicBed
 import com.aetherengineers.omarg.data.VoiceSlot
 import com.aetherengineers.omarg.tts.Script
 import com.aetherengineers.omarg.tts.ScriptPart
-import com.aetherengineers.omarg.tts.TtsEngine
+import com.aetherengineers.omarg.tts.SpeechEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -31,7 +30,7 @@ data class RenderRequest(
 )
 
 /** Text → speech → per-voice effects → master effects → music bed → limiter. Runs fully offline. */
-class Renderer(private val context: Context, private val engineFor: suspend (String?) -> TtsEngine?) {
+class Renderer(private val context: Context, private val engineFor: suspend (String?) -> SpeechEngine?) {
 
     suspend fun render(req: RenderRequest, progress: (String, Float) -> Unit): AudioBuffer {
         val work = File(context.cacheDir, "render").apply { mkdirs(); listFiles()?.forEach { it.delete() } }
@@ -54,12 +53,7 @@ class Renderer(private val context: Context, private val engineFor: suspend (Str
                     progress("Speaking ${spoken + 1} of $speechCount", 0.6f * spoken / speechCount)
                     val slot = req.slots.getOrElse(part.voiceSlot) { req.slots.first() }
                     val engine = engineFor(slot.engine) ?: error("Could not start the text-to-speech engine")
-                    val file = File(work, "part_$spoken.wav")
-                    if (!engine.synthesize(part.text, slot.voice, slot.rate, slot.pitch, file)) {
-                        error("The voice engine failed on: \"${part.text.take(40)}…\". Try another voice or engine.")
-                    }
-                    var audio = withContext(Dispatchers.Default) { Wav.read(file) }
-                    file.delete()
+                    var audio = engine.synthesize(part.text, slot.voice, slot.rate, slot.pitch, File(work, "part_$spoken.wav"))
                     if (sampleRate == 0) sampleRate = audio.sampleRate
                     if (req.trimSilence) audio = AudioBuffer(Dsp.trimSilence(audio.samples, audio.sampleRate), audio.sampleRate)
                     req.slotEffects[part.voiceSlot]?.let { fx -> audio = withContext(Dispatchers.Default) { fx.process(audio) } }

@@ -162,7 +162,7 @@ private fun SlotEditor(state: UiState, slot: VoiceSlot, showEffect: Boolean, onC
     val voice = voices.firstOrNull { it.name == slot.voice }
 
     PickerField("Engine", engineLabel) { pickEngine = true }
-    PickerField("Voice", voice?.let { "${it.languageLabel} · ${prettyVoiceName(it.name)}" } ?: "Engine default") { pickVoice = true }
+    PickerField("Voice", voice?.let { "${it.languageLabel} · ${(it.label ?: prettyVoiceName(it.name))}" } ?: "Engine default") { pickVoice = true }
     LabeledSlider("Speed", slot.rate, 0.25f..3f, "%.2f×".format(slot.rate)) { onChange(slot.copy(rate = it)) }
     LabeledSlider("Pitch", slot.pitch, 0.25f..2.5f, "%.2f".format(slot.pitch)) { onChange(slot.copy(pitch = it)) }
     if (showEffect) PickerField("Effect for this voice", slot.effect ?: "None") { pickEffect = true }
@@ -171,6 +171,10 @@ private fun SlotEditor(state: UiState, slot: VoiceSlot, showEffect: Boolean, onC
         label = { it.label }, supporting = { it.packageName }, onDismiss = { pickEngine = false }) {
         onChange(slot.copy(engine = it.packageName))
     }
+    if (voices.isEmpty() && engineKey == com.aetherengineers.omarg.tts.neural.NeuralEngine.PACKAGE) Text(
+        "No neural voices yet — add a voice pack in the Voices tab.",
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error,
+    )
     if (pickVoice) VoicePickerDialog(voices, slot.voice, onDismiss = { pickVoice = false }) { onChange(slot.copy(voice = it.name)) }
     if (pickEffect) ChoiceDialog("Effect for this voice", listOf<String?>(null) + state.allEffects.map { it.name }, slot.effect,
         label = { it ?: "None" }, onDismiss = { pickEffect = false }) { onChange(slot.copy(effect = it)) }

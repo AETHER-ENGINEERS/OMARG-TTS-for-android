@@ -12,8 +12,13 @@ android {
         applicationId = "com.aetherengineers.omarg"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
+
+        ndk {
+            // Galaxy S22 and every phone from the last decade is arm64; x86_64 keeps the emulator working.
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
     }
 
     signingConfigs {
@@ -53,7 +58,30 @@ android {
     }
 }
 
+// The sherpa-onnx neural TTS runtime ships as a prebuilt AAR on GitHub releases (not on Maven).
+val sherpaVersion = "1.13.8"
+val sherpaAar = layout.projectDirectory.file("libs/sherpa-onnx-$sherpaVersion.aar").asFile
+
+val downloadSherpa by tasks.registering {
+    description = "Downloads the sherpa-onnx AAR if it is missing"
+    outputs.file(sherpaAar)
+    doLast {
+        if (!sherpaAar.exists()) {
+            sherpaAar.parentFile.mkdirs()
+            val url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v$sherpaVersion/sherpa-onnx-$sherpaVersion.aar"
+            logger.lifecycle("Downloading $url")
+            val tmp = File(sherpaAar.path + ".part")
+            java.net.URI(url).toURL().openStream().use { input -> tmp.outputStream().use { input.copyTo(it) } }
+            tmp.renameTo(sherpaAar)
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(downloadSherpa) }
+
 dependencies {
+    implementation(files(sherpaAar))
+    implementation("org.apache.commons:commons-compress:1.27.1")
+
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
     implementation(composeBom)
     implementation("androidx.compose.ui:ui")

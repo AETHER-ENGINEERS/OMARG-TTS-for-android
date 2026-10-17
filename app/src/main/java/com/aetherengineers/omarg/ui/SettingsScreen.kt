@@ -48,9 +48,9 @@ fun SettingsScreen(vm: MainViewModel, state: UiState) {
         }
         SectionCard("Voices & engines") {
             Text(
-                "OMARG works with every text-to-speech engine installed on your phone. On a Galaxy S22 that is " +
-                    "Samsung TTS and Speech Services by Google. For the most natural offline voices, install a free " +
-                    "neural engine such as SherpaTTS (Piper / Kokoro voices) or RHVoice, then pick it under Voice → Engine.",
+                "OMARG has its own built-in neural engine (add voices in the Voices tab) and also works with every " +
+                    "text-to-speech engine installed on your phone — on a Galaxy S22 that is Samsung TTS and Speech " +
+                    "Services by Google, plus any you add such as RHVoice or eSpeak NG. Pick one under Voice → Engine.",
                 style = MaterialTheme.typography.bodyMedium,
             )
             SwitchRow("Show online-only voices", state.allowNetworkVoices, vm::setAllowNetworkVoices)

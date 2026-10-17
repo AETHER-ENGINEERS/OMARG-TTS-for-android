@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SettingsVoice
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -34,6 +35,7 @@ import com.aetherengineers.omarg.ui.MainViewModel
 import com.aetherengineers.omarg.ui.SettingsScreen
 import com.aetherengineers.omarg.ui.StudioScreen
 import com.aetherengineers.omarg.ui.UiEvent
+import com.aetherengineers.omarg.ui.VoicesScreen
 import com.aetherengineers.omarg.ui.theme.OmargTheme
 
 class MainActivity : ComponentActivity() {
@@ -59,20 +61,22 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 Scaffold(
-                    topBar = { TopAppBar(title = { Text(listOf("OMARG Narrator", "Library", "Settings")[tab]) }) },
+                    topBar = { TopAppBar(title = { Text(listOf("OMARG Narrator", "Voices", "Library", "Settings")[tab]) }) },
                     snackbarHost = { SnackbarHost(snackbar) },
                     bottomBar = {
                         NavigationBar {
                             NavigationBarItem(tab == 0, { tab = 0 }, { Icon(Icons.Filled.RecordVoiceOver, null) }, label = { Text("Studio") })
-                            NavigationBarItem(tab == 1, { tab = 1 }, { Icon(Icons.Filled.LibraryMusic, null) }, label = { Text("Library") })
-                            NavigationBarItem(tab == 2, { tab = 2 }, { Icon(Icons.Filled.Settings, null) }, label = { Text("Settings") })
+                            NavigationBarItem(tab == 1, { tab = 1 }, { Icon(Icons.Filled.SettingsVoice, null) }, label = { Text("Voices") })
+                            NavigationBarItem(tab == 2, { tab = 2 }, { Icon(Icons.Filled.LibraryMusic, null) }, label = { Text("Library") })
+                            NavigationBarItem(tab == 3, { tab = 3 }, { Icon(Icons.Filled.Settings, null) }, label = { Text("Settings") })
                         }
                     },
                 ) { padding ->
                     Box(Modifier.padding(padding)) {
                         when (tab) {
                             0 -> StudioScreen(vm, state, playback)
-                            1 -> LibraryScreen(vm, state, playback, openStudio = { tab = 0 })
+                            1 -> VoicesScreen(vm, state)
+                            2 -> LibraryScreen(vm, state, playback, openStudio = { tab = 0 })
                             else -> SettingsScreen(vm, state)
                         }
                     }
