@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.aetherengineers.onarg"
+    namespace = "com.aetherengineers.omarg"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.aetherengineers.onarg"
+        applicationId = "com.aetherengineers.omarg"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
@@ -17,14 +17,14 @@ android {
     }
 
     signingConfigs {
-        // CI signs with a persistent key when the ONARG_KEYSTORE_* secrets are set, so updates install over each other.
-        val keystore = System.getenv("ONARG_KEYSTORE_FILE")
+        // CI signs with a persistent key when the OMARG_KEYSTORE_* secrets are set, so updates install over each other.
+        val keystore = System.getenv("OMARG_KEYSTORE_FILE")
         if (keystore != null && file(keystore).exists()) {
             create("release") {
                 storeFile = file(keystore)
-                storePassword = System.getenv("ONARG_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("ONARG_KEY_ALIAS")
-                keyPassword = System.getenv("ONARG_KEY_PASSWORD")
+                storePassword = System.getenv("OMARG_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("OMARG_KEY_ALIAS")
+                keyPassword = System.getenv("OMARG_KEY_PASSWORD")
             }
         }
     }

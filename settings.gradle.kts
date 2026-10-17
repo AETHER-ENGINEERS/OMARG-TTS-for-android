@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "ONARG-TTS"
+rootProject.name = "OMARG-TTS"
 include(":app")

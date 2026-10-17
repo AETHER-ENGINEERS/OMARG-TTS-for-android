@@ -23,7 +23,7 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Onarg"
+        android:theme="@style/Theme.Omarg"
         tools:targetApi="35">
 
         <activity

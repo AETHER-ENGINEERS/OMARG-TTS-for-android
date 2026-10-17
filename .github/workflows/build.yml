@@ -25,20 +25,20 @@ jobs:
 
       - name: Restore signing key
         env:
-          KEYSTORE_BASE64: ${{ secrets.ONARG_KEYSTORE_BASE64 }}
+          KEYSTORE_BASE64: ${{ secrets.OMARG_KEYSTORE_BASE64 }}
         if: env.KEYSTORE_BASE64 != ''
         run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/onarg.jks"
-          echo "ONARG_KEYSTORE_FILE=$RUNNER_TEMP/onarg.jks" >> "$GITHUB_ENV"
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/omarg.jks"
+          echo "OMARG_KEYSTORE_FILE=$RUNNER_TEMP/omarg.jks" >> "$GITHUB_ENV"
 
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest
 
       - name: Build APKs
         env:
-          ONARG_KEYSTORE_PASSWORD: ${{ secrets.ONARG_KEYSTORE_PASSWORD }}
-          ONARG_KEY_ALIAS: ${{ secrets.ONARG_KEY_ALIAS }}
-          ONARG_KEY_PASSWORD: ${{ secrets.ONARG_KEY_PASSWORD }}
+          OMARG_KEYSTORE_PASSWORD: ${{ secrets.OMARG_KEYSTORE_PASSWORD }}
+          OMARG_KEY_ALIAS: ${{ secrets.OMARG_KEY_ALIAS }}
+          OMARG_KEY_PASSWORD: ${{ secrets.OMARG_KEY_PASSWORD }}
         run: ./gradlew --no-daemon assembleDebug assembleRelease
 
       - name: Check the app requests no network permission
@@ -50,16 +50,16 @@ jobs:
       - name: Rename APKs
         run: |
           mkdir -p out
-          cp app/build/outputs/apk/release/app-release.apk out/ONARG-Narrator.apk
-          cp app/build/outputs/apk/debug/app-debug.apk out/ONARG-Narrator-debug.apk
+          cp app/build/outputs/apk/release/app-release.apk out/OMARG-Narrator.apk
+          cp app/build/outputs/apk/debug/app-debug.apk out/OMARG-Narrator-debug.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ONARG-Narrator-apk
+          name: OMARG-Narrator-apk
           path: out/*.apk
 
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: out/ONARG-Narrator.apk
+          files: out/OMARG-Narrator.apk

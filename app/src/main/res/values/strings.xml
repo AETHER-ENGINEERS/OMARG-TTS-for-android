@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ONARG Narrator</string>
-    <string name="share_label">Narrate with ONARG</string>
-    <string name="process_text_label">Narrate with ONARG</string>
+    <string name="app_name">OMARG Narrator</string>
+    <string name="share_label">Narrate with OMARG</string>
+    <string name="process_text_label">Narrate with OMARG</string>
 </resources>

@@ -1,4 +1,4 @@
-# ONARG Narrator
+# OMARG Narrator
 
 A free, private text-to-speech narrator for Android with studio-style voice effects. No subscription, no ads, no
 accounts, no analytics — the app doesn't even have the internet permission. Built and tested for the Galaxy S22
@@ -18,15 +18,15 @@ accounts, no analytics — the app doesn't even have the internet permission. Bu
 - **Dialogue mode**: up to 4 voices in one script, each with its own engine, voice and effect. Switch with `[1]`–`[4]`.
 - **No length limit**: long texts are split at sentence boundaries automatically. `[pause 1s]` inserts silence.
 - **Background music** from your own files, with automatic ducking under the voice, looping and fade-out.
-- **Export** as M4A (AAC) or lossless WAV; share straight to WhatsApp and other apps, or save to `Music/ONARG`.
+- **Export** as M4A (AAC) or lossless WAV; share straight to WhatsApp and other apps, or save to `Music/OMARG`.
 - **Library** of everything you've rendered: play, rename, share, re-edit.
-- Share text into the app or select text anywhere → **Narrate with ONARG**.
+- Share text into the app or select text anywhere → **Narrate with OMARG**.
 - Material You colours and dark mode.
 
 ## Install on your phone
 
-1. Open the **Actions** tab on GitHub → latest **Build APK** run → download the `ONARG-Narrator-apk` artifact.
-2. Unzip it, copy `ONARG-Narrator.apk` to the phone and open it (allow "Install unknown apps" for your file manager).
+1. Open the **Actions** tab on GitHub → latest **Build APK** run → download the `OMARG-Narrator-apk` artifact.
+2. Unzip it, copy `OMARG-Narrator.apk` to the phone and open it (allow "Install unknown apps" for your file manager).
 
 Tagging a commit `v*` (e.g. `v1.0.0`) also publishes the APK as a GitHub release.
 
@@ -36,11 +36,11 @@ Without signing secrets, CI signs with a throwaway debug key, so each build may 
 To keep one key, create a keystore once and add these repository secrets:
 
 ```sh
-keytool -genkeypair -v -keystore onarg.jks -alias onarg -keyalg RSA -keysize 4096 -validity 10000
-base64 -w0 onarg.jks   # → ONARG_KEYSTORE_BASE64
+keytool -genkeypair -v -keystore omarg.jks -alias omarg -keyalg RSA -keysize 4096 -validity 10000
+base64 -w0 omarg.jks   # → OMARG_KEYSTORE_BASE64
 ```
 
-`ONARG_KEYSTORE_BASE64`, `ONARG_KEYSTORE_PASSWORD`, `ONARG_KEY_ALIAS` (`onarg`), `ONARG_KEY_PASSWORD`.
+`OMARG_KEYSTORE_BASE64`, `OMARG_KEYSTORE_PASSWORD`, `OMARG_KEY_ALIAS` (`omarg`), `OMARG_KEY_PASSWORD`.
 
 ## Build locally
 
@@ -50,5 +50,5 @@ Android Studio (Ladybug or newer) or `./gradlew assembleDebug` with JDK 17 and t
 
 Text → Android `TextToSpeech.synthesizeToFile` (per chunk / per voice) → silence trimming → per-voice effects →
 master effect chain → normalisation → background-music mix with ducking → soft limiter. All DSP is plain Kotlin
-in `app/src/main/java/com/aetherengineers/onarg/audio/dsp` (WSOLA time-stretch and pitch-shift, Freeverb reverb,
+in `app/src/main/java/com/aetherengineers/omarg/audio/dsp` (WSOLA time-stretch and pitch-shift, Freeverb reverb,
 RBJ biquad filters, modulated delay lines) and is unit-tested on the JVM.
