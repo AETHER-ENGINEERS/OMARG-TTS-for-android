@@ -14,8 +14,8 @@ android {
         applicationId = "com.aetherengineers.omarg"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.1.1"
 
         ndk {
             // Galaxy S22 and every phone from the last decade is arm64; x86_64 keeps the emulator working.

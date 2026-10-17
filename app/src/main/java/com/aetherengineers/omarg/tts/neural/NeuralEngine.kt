@@ -87,7 +87,7 @@ class NeuralEngine(private val installer: PackInstaller) : SpeechEngine {
                 val config = GenerationConfig(sid = sid.coerceIn(0, (tts.numSpeakers() - 1).coerceAtLeast(0)), speed = rate.coerceIn(0.3f, 3f))
                 if (lang != null) config.extra = mapOf("lang" to lang)
                 val ctx = currentCoroutineContext()
-                tts.generateWithConfigAndCallback(text, config) { if (stopRequested || !ctx.isActive) 0 else 1 }
+                tts.generateWithConfigAndCallback(text, config, StopCallback { stopRequested || !ctx.isActive })
             }
         }
         if (stopRequested) throw kotlinx.coroutines.CancellationException("Stopped")
