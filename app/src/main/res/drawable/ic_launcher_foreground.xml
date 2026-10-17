@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Microphone with sound waves, drawn inside the 66dp adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M54,30a8,8 0,0 1,8 8v16a8,8 0,0 1,-16 0V38a8,8 0,0 1,8 -8z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="3.5" android:strokeLineCap="round"
+        android:pathData="M40,52a14,14 0,0 0,28 0M54,66v8M46,76h16" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFF0C04A" android:strokeWidth="3.5" android:strokeLineCap="round"
+        android:pathData="M32,42v12M26,46v4M76,42v12M82,46v4" />
+</vector>
