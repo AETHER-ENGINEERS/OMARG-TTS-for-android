@@ -71,4 +71,28 @@ class DspTest {
         val y = Dsp.reverb(tone(300.0, 0.3), sr, 0.8, 0.5, 0.4, 1.0, 20.0)
         assertTrue(y.size > (0.3 * sr).toInt())
     }
+
+    /** "Drunk" must warble pitch at ~10 Hz by roughly ±2 semitones, matching the reference recordings. */
+    @Test fun drunkWarblesAtTenHz() {
+        val y = Presets.byName("Drunk")!!.process(AudioBuffer(tone(220.0, 2.0), sr)).samples
+        // Instantaneous frequency from zero crossings, sampled every 10 ms.
+        val crossings = (1 until y.size).filter { (y[it - 1] < 0) != (y[it] < 0) }
+        val step = sr / 100
+        val freq = (2 until (y.size / step) - 2).map { k ->
+            val a = k * step; val b = a + step
+            val c = crossings.filter { it in a until b }
+            if (c.size < 2) 220.0 else (c.size - 1) / 2.0 / ((c.last() - c.first()).toDouble() / sr)
+        }
+        val cents = freq.map { 1200 * kotlin.math.ln(it / 220.0) / kotlin.math.ln(2.0) }
+        val spread = cents.sorted().let { it[(it.size * 0.95).toInt()] - it[(it.size * 0.05).toInt()] }
+        assertTrue("spread $spread", spread in 250.0..500.0)
+        // Dominant modulation rate via the best-matching sinusoid between 2 and 16 Hz.
+        val best = (20..160).maxBy { r ->
+            val f = r / 10.0
+            val re = cents.indices.sumOf { cents[it] * kotlin.math.cos(2 * PI * f * it / 100) }
+            val im = cents.indices.sumOf { cents[it] * sin(2 * PI * f * it / 100) }
+            re * re + im * im
+        } / 10.0
+        assertTrue("rate $best", best in 9.0..10.6)
+    }
 }

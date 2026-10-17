@@ -58,7 +58,12 @@ object Presets {
         preset("Characters", "Old radio",
             s(FILTER, "low" to 500.0, "high" to 3000.0), s(DISTORTION, "drive" to 3.0, "mix" to 0.6),
             s(NOISE, "level" to -34.0, "low" to 800.0, "high" to 5000.0), s(TREMOLO, "rate" to 0.7, "depth" to 0.12)),
-        preset("Characters", "Drunk", s(TEMPO, "tempo" to 0.82), s(VIBRATO, "depth" to 9.0, "rate" to 0.6)),
+        // Measured from reference clips: a fast ~9.8 Hz pitch warble of about ±2 semitones, no other processing.
+        preset("Characters", "Drunk", s(VIBRATO, "depth" to 4.0, "rate" to 9.8)),
+        preset("Characters", "Tipsy", s(VIBRATO, "depth" to 2.2, "rate" to 9.8)),
+        preset("Characters", "Wasted", s(TEMPO, "tempo" to 0.88), s(PITCH, "semitones" to -1.0),
+            s(VIBRATO, "depth" to 5.0, "rate" to 9.8), s(VIBRATO, "depth" to 8.0, "rate" to 0.6)),
+        preset("Characters", "Woozy", s(TEMPO, "tempo" to 0.82), s(VIBRATO, "depth" to 9.0, "rate" to 0.6)),
         preset("Characters", "Fast talker", s(TEMPO, "tempo" to 1.6)),
         preset("Characters", "Slow motion", s(SPEED, "rate" to 0.7)),
         preset("Characters", "Fan", s(TREMOLO, "rate" to 17.0, "depth" to 0.8)),
